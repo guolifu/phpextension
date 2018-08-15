@@ -1,0 +1,8 @@
+myclass.lo: /home/m7/php-7.1.19/ext/myclass/myclass.c
+	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/home/m7/php-7.1.19/ext/myclass $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /home/m7/php-7.1.19/ext/myclass/myclass.c -o myclass.lo 
+$(phplibdir)/myclass.la: ./myclass.la
+	$(LIBTOOL) --mode=install cp ./myclass.la $(phplibdir)
+
+./myclass.la: $(shared_objects_myclass) $(MYCLASS_SHARED_DEPENDENCIES)
+	$(LIBTOOL) --mode=link $(CC) $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ -export-dynamic -avoid-version -prefer-pic -module -rpath $(phplibdir) $(EXTRA_LDFLAGS) $(shared_objects_myclass) $(MYCLASS_SHARED_LIBADD)
+
