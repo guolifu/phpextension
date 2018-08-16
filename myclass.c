@@ -78,46 +78,7 @@ int call_user_class_method(zval *retval, zend_class_entry *obj_ce,
     return  zend_call_function(&fci, NULL TSRMLS_CC);         //函数调用结束。  
 
 }
-/* {{{ PHP_INI
- */
-/* Remove comments and fill if you need to have entries in php.ini
-PHP_INI_BEGIN()
-    STD_PHP_INI_ENTRY("myclass.global_value",      "42", PHP_INI_ALL, OnUpdateLong, global_value, zend_myclass_globals, myclass_globals)
-    STD_PHP_INI_ENTRY("myclass.global_string", "foobar", PHP_INI_ALL, OnUpdateString, global_string, zend_myclass_globals, myclass_globals)
-PHP_INI_END()
-*/
-/* }}} */
 
-/* Remove the following function when you have successfully modified config.m4
-   so that your module can be compiled into PHP, it exists only for testing
-   purposes. */
-
-
-/* }}} */
-/* The previous line is meant for vim and emacs, so it can correctly fold and
-   unfold functions in source code. See the corresponding marks just before
-   function definition, where the functions purpose is also documented. Please
-   follow this convention for the convenience of others editing your code.
-*/
-
-
-/* {{{ php_myclass_init_globals
- */
-/* Uncomment this function if you have INI entries
-static void php_myclass_init_globals(zend_myclass_globals *myclass_globals)
-{
-	myclass_globals->global_value = 0;
-	myclass_globals->global_string = NULL;
-}
-*/
-/* }}} */
-
-/* {{{ PHP_MINIT_FUNCTION
- */
-/* {{{ myclass_functions[]
- *
- * Every user visible function must have an entry in myclass_functions[].
- */
 const zend_function_entry myclass_functions[] = {
 	PHP_ME(children, __construct, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(children, set, arginfo_children_learn, ZEND_ACC_PUBLIC)
@@ -158,10 +119,10 @@ PHP_METHOD(children, __construct)
 	//php_printf("__construct\n");
       zval *app_dir = NULL;
 
-      // if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &app_dir) == FAILURE ){
-      //       RETURN_NULL();
-      // }
-      // zend_update_static_property(children_ce, ZEND_STRL("app_dir"), app_dir TSRMLS_CC);
+      if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &app_dir) == FAILURE ){
+            RETURN_NULL();
+      }
+      zend_update_static_property(children_ce, ZEND_STRL("app_dir"), app_dir TSRMLS_CC);
 }
 PHP_METHOD(children, test)
 {

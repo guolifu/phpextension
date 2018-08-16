@@ -1,7 +1,7 @@
-srcdir = /home/m7/php-7.1.19/ext/myclass
-builddir = /home/m7/php-7.1.19/ext/myclass
-top_srcdir = /home/m7/php-7.1.19/ext/myclass
-top_builddir = /home/m7/php-7.1.19/ext/myclass
+srcdir = /home/m7/php-7.1.19/ext/phpextension
+builddir = /home/m7/php-7.1.19/ext/phpextension
+top_srcdir = /home/m7/php-7.1.19/ext/phpextension
+top_builddir = /home/m7/php-7.1.19/ext/phpextension
 EGREP = /bin/grep -E
 SED = /bin/sed
 CONFIGURE_COMMAND = './configure' '--with-php-config=/usr/local/php/bin/php-config'
@@ -21,7 +21,7 @@ prefix = /usr/local/php
 exec_prefix = $(prefix)
 libdir = ${exec_prefix}/lib
 prefix = /usr/local/php
-phplibdir = /home/m7/php-7.1.19/ext/myclass/modules
+phplibdir = /home/m7/php-7.1.19/ext/phpextension/modules
 phpincludedir = /usr/local/php/include/php
 CC = cc
 CFLAGS = -g -O2
@@ -189,8 +189,8 @@ prof-use:
 
 .PHONY: all clean install distclean test prof-gen prof-clean prof-use
 .NOEXPORT:
-myclass.lo: /home/m7/php-7.1.19/ext/myclass/myclass.c
-	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/home/m7/php-7.1.19/ext/myclass $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /home/m7/php-7.1.19/ext/myclass/myclass.c -o myclass.lo 
+myclass.lo: /home/m7/php-7.1.19/ext/phpextension/myclass.c
+	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/home/m7/php-7.1.19/ext/phpextension $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /home/m7/php-7.1.19/ext/phpextension/myclass.c -o myclass.lo 
 $(phplibdir)/myclass.la: ./myclass.la
 	$(LIBTOOL) --mode=install cp ./myclass.la $(phplibdir)
 

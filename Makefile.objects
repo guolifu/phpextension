@@ -1,5 +1,5 @@
-myclass.lo: /home/m7/php-7.1.19/ext/myclass/myclass.c
-	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/home/m7/php-7.1.19/ext/myclass $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /home/m7/php-7.1.19/ext/myclass/myclass.c -o myclass.lo 
+myclass.lo: /home/m7/php-7.1.19/ext/phpextension/myclass.c
+	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/home/m7/php-7.1.19/ext/phpextension $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /home/m7/php-7.1.19/ext/phpextension/myclass.c -o myclass.lo 
 $(phplibdir)/myclass.la: ./myclass.la
 	$(LIBTOOL) --mode=install cp ./myclass.la $(phplibdir)
 
