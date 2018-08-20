@@ -52,6 +52,7 @@ PHP_FUNCTION(hello);
 PHP_METHOD(children,__construct);
 PHP_METHOD(children, set);
 PHP_METHOD(children, test);
+PHP_METHOD(children, test2);
 ZEND_BEGIN_ARG_INFO_EX(arginfo_children_learn, 0, 0, 1)
     ZEND_ARG_INFO(0, love)
 ZEND_END_ARG_INFO()
@@ -67,7 +68,6 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #endif
 
 #endif	/* PHP_MYCLASS_H */
-
 
 /*
  * Local variables:

@@ -27,12 +27,24 @@
 #include "ext/standard/info.h"
 #include "php_myclass.h"
 
+
+#include "Zend/zend_exceptions.h"	// for zend_throw_exception
+#include "Zend/zend_interfaces.h"	// for zend_call_method_with_*
+#include "Zend/zend_smart_str.h"	// for smart_str
+#include "ext/standard/url.h"	// for php_url_*
+#include "ext/standard/php_var.h"	// for php_var_dump
+#include "ext/standard/php_string.h"	// for php_trim
+#include "ext/standard/php_filestat.h"	// for php_stat
+#include "ext/session/php_session.h"	// for php_session_start
+#include "ext/json/php_json.h"	// for php_json_encode
+#include "main/SAPI.h"	// for sapi_header_op
 /* If you declare any globals in php_myclass.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(myclass)
 */
 
 /* True global resources - no need for thread safety here */
 static int le_myclass;
+
 int zend_execute_scripts_ext(char *filepath){
 
     zval retval;
@@ -83,6 +95,7 @@ const zend_function_entry myclass_functions[] = {
 	PHP_ME(children, __construct, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(children, set, arginfo_children_learn, ZEND_ACC_PUBLIC)
 	PHP_ME(children, test, NULL, ZEND_ACC_PUBLIC)
+      PHP_ME(children, test2, NULL, ZEND_ACC_PUBLIC)
 	PHP_FE(hello,	NULL)
 	PHP_FE_END	/* Must be the last line in myclass_functions[] */
 };
@@ -114,15 +127,70 @@ PHP_METHOD(children, set)
 
 	zend_update_property_string(children_ce,  getThis(), "attr1", sizeof("attr1") - 1, love);
 }
+
 PHP_METHOD(children, __construct)
 {
 	//php_printf("__construct\n");
-      zval *app_dir = NULL;
+      
 
-      if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &app_dir) == FAILURE ){
-            RETURN_NULL();
+      
+      // if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &app_dir) == FAILURE ){
+      //       RETURN_NULL();
+      // }
+      // zend_update_static_property(children_ce, ZEND_STRL("app_dir"), app_dir TSRMLS_CC);
+}
+PHP_METHOD(children, test2)
+{
+      zval *app_dir = NULL;
+      zval *server, *field;
+      zend_string *environ = NULL, *iniName, *tstr, *docRoot = NULL, *baseUri = NULL, *uri = NULL, *appRoot = NULL;
+      if (PG(auto_globals_jit)) {
+		tstr = zend_string_init(ZEND_STRL("_SERVER"), 0);
+		zend_is_auto_global(tstr);
+		zend_string_release(tstr);
+	}
+      server = &PG(http_globals)[TRACK_VARS_SERVER];
+      
+      do {
+      // 还是先找 PHP_INFO
+      if ((field = zend_hash_str_find(Z_ARRVAL_P(server), ZEND_STRL("PATH_INFO"))) && Z_TYPE_P(field) == IS_STRING) {
+            uri = zend_string_copy(Z_STR_P(field));
+            break;
       }
-      zend_update_static_property(children_ce, ZEND_STRL("app_dir"), app_dir TSRMLS_CC);
+      // 接着找 REQUEST_URI
+      if ((field = zend_hash_str_find(Z_ARRVAL_P(server), ZEND_STRL("REQUEST_URI"))) && Z_TYPE_P(field) == IS_STRING) {
+            if (strncasecmp(Z_STRVAL_P(field), ZEND_STRL("http://")) &&
+                  strncasecmp(Z_STRVAL_P(field), ZEND_STRL("https://"))) {
+                  // not http url
+                  char *pos = strstr(Z_STRVAL_P(field), "?");
+                  if (pos) {
+                  // found query
+                  uri = zend_string_init(Z_STRVAL_P(field), pos - Z_STRVAL_P(field), 0);
+                  } else {
+                  uri = zend_string_copy(Z_STR_P(field));
+                  }
+            } else {
+                  php_url *urlInfo = php_url_parse(Z_STRVAL_P(field));
+                  if (urlInfo && urlInfo->path) {
+                  uri = zend_string_init(urlInfo->path, strlen(urlInfo->path), 0);
+                  }
+                  php_url_free(urlInfo);
+            }
+            char *temp = ZSTR_VAL(uri);
+            php_printf("%s\n",temp);
+            break;
+      }
+      // 最后找 ORIG_PATH_INFO
+      if ((field = zend_hash_str_find(Z_ARRVAL_P(server), ZEND_STRL("ORIG_PATH_INFO"))) &&
+                  Z_TYPE_P(field) == IS_STRING) {
+            uri = zend_string_copy(Z_STR_P(field));
+            break;
+      }
+     
+      
+      } while (0);
+
+
 }
 PHP_METHOD(children, test)
 {
@@ -150,12 +218,10 @@ PHP_METHOD(children, test)
       zend_string *c_key= zend_string_init("controller", sizeof("controller")-1, 0);
 
       if ((c_result = zend_hash_find(ht, c_key)) != NULL) {
-      php_printf("%s\n","有c");
             controller_name = zval_get_string(c_result);
         
       }else{
-            php_printf("%s\n","没有c");
-            //zend_error_noreturn(E_CORE_ERROR,  "Couldn't find controller param in url.");
+            zend_error_noreturn(E_CORE_ERROR,  "Couldn't find controller param in url.");
 
       }
       //释放key的变量
@@ -166,12 +232,9 @@ PHP_METHOD(children, test)
       zend_string *a_key= zend_string_init("action", sizeof("action")-1, 0);
 
       if ((a_result = zend_hash_find(ht, a_key)) != NULL) {
-php_printf("%s\n","有a");
             action_name = zval_get_string(a_result);
-            //php_printf("%s\n", Z_STRVAL_P(a_result));
-            //php_printf("%s\n", zval_get_string(a_result));
+            // php_printf("%s\n", Z_STRVAL_P(a_result));
       }else{
-php_printf("%s\n","没有a");
             zend_error_noreturn(E_CORE_ERROR,"Couldn't find action param in url.");
 
       }
@@ -183,6 +246,7 @@ php_printf("%s\n","没有a");
       //拼装controller文件路径
       char *path = Z_STRVAL_P(app_dir);
 
+      //php_printf("%s\n", Z_STRVAL_P(app_dir));
 
       char *c_2 = "controllers/";
       strcat(path,c_2);
@@ -195,10 +259,10 @@ php_printf("%s\n","没有a");
       strcat(path,c_4);
       char *c_1 = path;
 
-      // php_printf("%s\n", c_1);
+      // php_printf("%s\n", path);
       // php_printf("%s\n", controller_name);
       // php_printf("%s\n", action_name);
-      // PHPWRITE(Z_STRVAL_P(app_dir), Z_STRLEN_P(app_dir));
+      PHPWRITE(Z_STRVAL_P(app_dir), Z_STRLEN_P(app_dir));
 
 
       //加载执行controller文件
