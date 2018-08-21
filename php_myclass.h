@@ -44,6 +44,9 @@ extern zend_module_entry myclass_module_entry;
 */
 ZEND_BEGIN_MODULE_GLOBALS(myclass)
 	zend_string *uri;
+  zval paths;
+  zend_string *controllerName;
+  zend_string *actionName;
 ZEND_END_MODULE_GLOBALS(myclass)
 extern ZEND_DECLARE_MODULE_GLOBALS(myclass);
 zend_class_entry *children_ce;

@@ -207,11 +207,87 @@ PHP_METHOD(children, init)
 
 }
 PHP_METHOD(children, run){
+      //设置站点目录
+      zval *app_dir = zend_read_static_property(Z_OBJCE_P(getThis()), "app_dir", sizeof("app_dir")-1, 0 TSRMLS_DC);
+
+
       zend_string *uri;
+      zval *conf, *field, *paths;
       uri = MYCLASS_G(uri);
-      
+      zend_string *stringSlash;
       char *temp = ZSTR_VAL(uri);
       php_printf("%s\n",temp);
+
+      zend_ulong pathsOffset = 0;
+      paths = &MYCLASS_G(paths);
+	if (ZSTR_LEN(uri)) {
+		php_explode( zend_new_interned_string(zend_string_init(ZEND_STRL("/"), 1)), uri, paths, ZEND_LONG_MAX);
+	}
+      field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset);
+      MYCLASS_G(controllerName) = zend_string_tolower(Z_STR_P(field));
+
+
+      field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset+1);
+      MYCLASS_G(actionName) = zend_string_tolower(Z_STR_P(field));
+      php_printf("%s\n",ZSTR_VAL(MYCLASS_G(controllerName)));
+      php_printf("%s\n",ZSTR_VAL(MYCLASS_G(actionName)));
+
+      char *path = Z_STRVAL_P(app_dir);
+
+      char *c_2 = "controllers/";
+      strcat(path,c_2);
+
+      char *c_3 = ZSTR_VAL(MYCLASS_G(controllerName));
+      strcat(path,c_3);
+
+      char *c_4 = ".php";
+      strcat(path,c_4);
+
+
+      php_printf("%s\n",path);
+
+      //加载执行controller文件
+      int flag;
+      flag = zend_execute_scripts_ext(path);
+
+      if(flag == FAILURE){
+
+            zend_error_noreturn(E_CORE_ERROR,"Couldn't find file: %s.",path);
+
+      }
+
+      
+
+      //查找controller对应的
+      //zend_class_entry *zend_lookup_class(zend_string *name);
+      zend_class_entry *controller_ce = zend_lookup_class(MYCLASS_G(controllerName));
+
+      if(controller_ce == NULL){
+
+            zend_error_noreturn(E_CORE_ERROR,"Couldn't find file: %s.",path);
+      }
+
+
+      zval obj;
+      object_init_ex(&obj, controller_ce);
+
+      
+      zval function_name;
+      ZVAL_STRING(&function_name,ZSTR_VAL(MYCLASS_G(actionName)));
+
+      
+      flag = call_user_class_method(return_value, controller_ce, &obj, function_name, 0, NULL);
+
+      if(flag == FAILURE){
+
+
+            zend_error_noreturn(E_CORE_ERROR, 
+                                "Couldn't find implementation for method %s%s%s", 
+                                controller_ce ? ZSTR_VAL(controller_ce->name) : "", 
+                                controller_ce ? "::" : "", 
+                                function_name);
+        
+      }
 }
 PHP_METHOD(children, test)
 {
@@ -348,6 +424,9 @@ PHP_MSHUTDOWN_FUNCTION(myclass)
 PHP_RINIT_FUNCTION(myclass)
 {
       MYCLASS_G(uri) = NULL;
+      MYCLASS_G(controllerName) = NULL;
+      MYCLASS_G(actionName) = NULL;
+      array_init(&MYCLASS_G(paths));
 #if defined(COMPILE_DL_MYCLASS) && defined(ZTS)
 	ZEND_TSRMLS_CACHE_UPDATE();
 #endif
