@@ -38,9 +38,9 @@
 #include "ext/session/php_session.h"	// for php_session_start
 #include "ext/json/php_json.h"	// for php_json_encode
 #include "main/SAPI.h"	// for sapi_header_op
-/* If you declare any globals in php_myclass.h uncomment this:
+/* If you declare any globals in php_myclass.h uncomment this:*/
 ZEND_DECLARE_MODULE_GLOBALS(myclass)
-*/
+
 
 /* True global resources - no need for thread safety here */
 static int le_myclass;
@@ -95,7 +95,9 @@ const zend_function_entry myclass_functions[] = {
 	PHP_ME(children, __construct, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(children, set, arginfo_children_learn, ZEND_ACC_PUBLIC)
 	PHP_ME(children, test, NULL, ZEND_ACC_PUBLIC)
-      PHP_ME(children, test2, NULL, ZEND_ACC_PUBLIC)
+      PHP_ME(children, init, NULL, ZEND_ACC_PUBLIC)
+      PHP_ME(children, run, NULL, ZEND_ACC_PUBLIC)
+      
 	PHP_FE(hello,	NULL)
 	PHP_FE_END	/* Must be the last line in myclass_functions[] */
 };
@@ -139,7 +141,7 @@ PHP_METHOD(children, __construct)
       // }
       // zend_update_static_property(children_ce, ZEND_STRL("app_dir"), app_dir TSRMLS_CC);
 }
-PHP_METHOD(children, test2)
+PHP_METHOD(children, init)
 {
       zval *app_dir = NULL;
       zval *server, *field;
@@ -176,8 +178,7 @@ PHP_METHOD(children, test2)
                   }
                   php_url_free(urlInfo);
             }
-            char *temp = ZSTR_VAL(uri);
-            php_printf("%s\n",temp);
+           
             break;
       }
       // 最后找 ORIG_PATH_INFO
@@ -191,6 +192,26 @@ PHP_METHOD(children, test2)
       } while (0);
 
 
+
+      if (uri) {
+		zend_string *t = uri;
+		uri = php_trim(uri, ZEND_STRL("/"), 3);
+		zend_string_release(t);
+	} else {
+		uri = ZSTR_EMPTY_ALLOC();
+	}
+	MYCLASS_G(uri) = uri;
+
+      //char *temp = ZSTR_VAL(uri);
+      //php_printf("%s\n",temp);
+
+}
+PHP_METHOD(children, run){
+      zend_string *uri;
+      uri = MYCLASS_G(uri);
+      
+      char *temp = ZSTR_VAL(uri);
+      php_printf("%s\n",temp);
 }
 PHP_METHOD(children, test)
 {
@@ -326,6 +347,7 @@ PHP_MSHUTDOWN_FUNCTION(myclass)
  */
 PHP_RINIT_FUNCTION(myclass)
 {
+      MYCLASS_G(uri) = NULL;
 #if defined(COMPILE_DL_MYCLASS) && defined(ZTS)
 	ZEND_TSRMLS_CACHE_UPDATE();
 #endif
@@ -338,6 +360,9 @@ PHP_RINIT_FUNCTION(myclass)
  */
 PHP_RSHUTDOWN_FUNCTION(myclass)
 {
+      /*if (MYCLASS_G(uri)) {
+		zend_string_release(MYCLASS_G(uri));
+	}*/
 	return SUCCESS;
 }
 /* }}} */

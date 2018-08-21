@@ -41,18 +41,19 @@ extern zend_module_entry myclass_module_entry;
 /*
   	Declare any global variables you may need between the BEGIN
 	and END macros here:
-
-ZEND_BEGIN_MODULE_GLOBALS(myclass)
-	zend_long  global_value;
-	char *global_string;
-ZEND_END_MODULE_GLOBALS(myclass)
 */
+ZEND_BEGIN_MODULE_GLOBALS(myclass)
+	zend_string *uri;
+ZEND_END_MODULE_GLOBALS(myclass)
+extern ZEND_DECLARE_MODULE_GLOBALS(myclass);
 zend_class_entry *children_ce;
 PHP_FUNCTION(hello);
 PHP_METHOD(children,__construct);
 PHP_METHOD(children, set);
 PHP_METHOD(children, test);
-PHP_METHOD(children, test2);
+PHP_METHOD(children, init);
+PHP_METHOD(children, run);
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_children_learn, 0, 0, 1)
     ZEND_ARG_INFO(0, love)
 ZEND_END_ARG_INFO()
@@ -61,8 +62,8 @@ ZEND_END_ARG_INFO()
    You are encouraged to rename these macros something shorter, see
    examples in any other php module directory.
 */
-#define MYCLASS_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(myclass, v)
 
+#define MYCLASS_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(myclass , v)
 #if defined(ZTS) && defined(COMPILE_DL_MYCLASS)
 ZEND_TSRMLS_CACHE_EXTERN()
 #endif
@@ -77,8 +78,3 @@ ZEND_TSRMLS_CACHE_EXTERN()
  * vim600: noet sw=4 ts=4 fdm=marker
  * vim<600: noet sw=4 ts=4
  */
-ZEND_BEGIN_MODULE_GLOBALS(thunder)
-	zend_string *uri;
-ZEND_END_MODULE_GLOBALS(thunder)
-extern ZEND_DECLARE_MODULE_GLOBALS(thunder);
-#define THUNDER_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(thunder, v)
