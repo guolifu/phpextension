@@ -77,3 +77,8 @@ ZEND_TSRMLS_CACHE_EXTERN()
  * vim600: noet sw=4 ts=4 fdm=marker
  * vim<600: noet sw=4 ts=4
  */
+ZEND_BEGIN_MODULE_GLOBALS(thunder)
+	zend_string *uri;
+ZEND_END_MODULE_GLOBALS(thunder)
+extern ZEND_DECLARE_MODULE_GLOBALS(thunder);
+#define THUNDER_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(thunder, v)
