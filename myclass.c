@@ -80,7 +80,7 @@ zval * GlobalsStrFind(uint type, char *name, size_t len)
 }
 zval * azaleaConfigSubFindEx(const char *key, size_t lenKey, const char *subKey, size_t lenSubKey)
 {
-	zval *found = zend_hash_str_find(Z_ARRVAL(AZALEA_G(config)), key, lenKey);
+	zval *found = zend_hash_str_find(Z_ARRVAL(MYCLASS_G(config)), key, lenKey);
 	if (!found) {
 		return NULL;
 	}
@@ -174,6 +174,15 @@ PHP_METHOD(children, __construct)
       // }
       // zend_update_static_property(children_ce, ZEND_STRL("app_dir"), app_dir TSRMLS_CC);
 }
+double azaleaGetMicrotime()
+{
+	struct timeval tp = {0};
+	if (gettimeofday(&tp, NULL)) {
+		return (double)time(0);
+	}
+	return (double)(tp.tv_sec + tp.tv_usec / 1000000.00);
+}
+
 PHP_METHOD(children, init)
 {
       zval *config = NULL, *field, *conf, *pData, iniValue;
@@ -352,82 +361,72 @@ PHP_METHOD(children, init)
 
 	// define AZALEA magic const
 	module_number = AG(moduleNumber);
-	REGISTER_NS_STRINGL_CONSTANT(AZALEA_NS, "DOCROOT", ZSTR_VAL(docRoot), ZSTR_LEN(docRoot), CONST_CS);
-	REGISTER_NS_STRINGL_CONSTANT(AZALEA_NS, "BASEPATH", ZSTR_VAL(baseUri), ZSTR_LEN(baseUri), CONST_CS);
+	REGISTER_NS_STRINGL_CONSTANT(MYCLASS_NS, "DOCROOT", ZSTR_VAL(docRoot), ZSTR_LEN(docRoot), CONST_CS);
+      // php_var_dump(&PG(http_globals)[TRACK_VARS_SERVER],1);
 
-	// get paths
-	conf = azaleaConfigSubFindEx(ZEND_STRL("path"), ZEND_STRL("basepath"));
-	if (conf && Z_TYPE_P(conf) == IS_STRING) {
-		char realpath[MAXPATHLEN];
-		if (VCWD_REALPATH(Z_STRVAL_P(conf), realpath)) {
-			appRoot = zend_string_init(realpath, strlen(realpath), 0);
-		}
-	}
-	if (!appRoot) {
-		appRoot = zend_string_copy(MYCLASS_G(docRoot));
-	}
-	if (!IS_SLASH(ZSTR_VAL(appRoot)[ZSTR_LEN(appRoot) - 1])) {
-		tstr = appRoot;
-		appRoot = strpprintf(0, "%s%c", ZSTR_VAL(appRoot), DEFAULT_SLASH);
-		zend_string_release(tstr);
-	}
+     
 
-	// define AZALEA magic const
-	REGISTER_NS_STRINGL_CONSTANT(AZALEA_NS, "APPROOT", ZSTR_VAL(appRoot), ZSTR_LEN(appRoot), CONST_CS);
+
+
+      // appRoot = zend_string_copy(MYCLASS_G(docRoot));
+      // char *temp = ZSTR_VAL(appRoot);
+      // strcat(temp,"app");
+      // 确保 / 结尾
+      zend_string *ztemp ;
+      ztemp = zend_string_copy(MYCLASS_G(docRoot));
+      char *temp = ZSTR_VAL(ztemp);
+      strcat(temp,"app");
+      len = strlen(temp);
+
+
+
+      appRoot = zend_string_init(temp, len + 1, 0);
+      // zend_string_extend(baseUri, len + 1, 0);  // zend_string 长度增加 1
+      // ZSTR_VAL(appRoot)[len] = 'a';
+      // ZSTR_VAL(appRoot)[len+1] = 'p';
+      // ZSTR_VAL(appRoot)[len+2] = 'p';
+      ZSTR_VAL(appRoot)[len] = DEFAULT_SLASH;
+      ZSTR_VAL(appRoot)[len + 1] = '\0';
 	MYCLASS_G(appRoot) = appRoot;
 
-	// set session if in session.environ list
-	field = azaleaConfigSubFindEx(ZEND_STRL("session"), ZEND_STRL("env"));
-	ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(field), pData) {
-		if (Z_TYPE_P(pData) == IS_STRING && 0 == strcasecmp(Z_STRVAL_P(pData), ZSTR_VAL(MYCLASS_G(environ)))) {
-			MYCLASS_G(startSession) = 1;
-			break;
-		}
-	} ZEND_HASH_FOREACH_END();
-	if (MYCLASS_G(startSession)) {
-		// session.name
-		iniName = zend_string_init(ZEND_STRL("session.name"), 0);
-		zend_alter_ini_entry(iniName, Z_STR_P(azaleaConfigSubFindEx(ZEND_STRL("session"), ZEND_STRL("name"))),
-				PHP_INI_USER, PHP_INI_STAGE_RUNTIME);
-		zend_string_release(iniName);
-		// session.cookie_lifetime
-		conf = azaleaConfigSubFindEx(ZEND_STRL("session"), ZEND_STRL("lifetime"));
-		ZVAL_COPY(&iniValue, conf);
-		convert_to_string(&iniValue);
-		iniName = zend_string_init(ZEND_STRL("session.cookie_lifetime"), 0);
-		zend_alter_ini_entry(iniName, Z_STR(iniValue), PHP_INI_USER, PHP_INI_STAGE_RUNTIME);
-		zend_string_release(iniName);
-		zval_ptr_dtor(&iniValue);
-		// session.cookie_path
-		conf = azaleaConfigSubFindEx(ZEND_STRL("session"), ZEND_STRL("path"));
-		ZVAL_COPY(&iniValue, conf);
-		convert_to_string(&iniValue);
-		if (!Z_STRLEN(iniValue)) {
-			// use baseUri for default path
-			zval_ptr_dtor(&iniValue);
-			ZVAL_STR(&iniValue, baseUri);
-		}
-		iniName = zend_string_init(ZEND_STRL("session.cookie_path"), 0);
-		zend_alter_ini_entry(iniName, Z_STR(iniValue), PHP_INI_USER, PHP_INI_STAGE_RUNTIME);
-		zend_string_release(iniName);
-		zval_ptr_dtor(&iniValue);
-		// session.cooke_domain
-		conf = azaleaConfigSubFindEx(ZEND_STRL("session"), ZEND_STRL("domain"));
-		ZVAL_COPY(&iniValue, conf);
-		convert_to_string(&iniValue);
-		if (Z_STRLEN(iniValue)) {
-			iniName = zend_string_init(ZEND_STRL("session.cookie_domain"), 0);
-			zend_alter_ini_entry(iniName, Z_STR(iniValue), PHP_INI_USER, PHP_INI_STAGE_RUNTIME);
-			zend_string_release(iniName);
-		}
-		zval_ptr_dtor(&iniValue);
-	}
-	// ---------- END ----------
+	//REGISTER_NS_STRINGL_CONSTANT(MYCLASS_NS, "BASEPATH", ZSTR_VAL(baseUri), ZSTR_LEN(baseUri), CONST_CS);
 
-	// init bootstrap instance
-	instance = &MYCLASS_G(bootstrap);
-	object_init_ex(instance, azaleaBootstrapCe);
-	RETURN_ZVAL(instance, 1, 0);
+	// // get paths
+	// conf = azaleaConfigSubFindEx(ZEND_STRL("path"), ZEND_STRL("basepath"));
+	// if (conf && Z_TYPE_P(conf) == IS_STRING) {
+	// 	char realpath[MAXPATHLEN];
+	// 	if (VCWD_REALPATH(Z_STRVAL_P(conf), realpath)) {
+	// 		appRoot = zend_string_init(realpath, strlen(realpath), 0);
+	// 	}
+	// }
+	// if (!appRoot) {
+	// 	appRoot = zend_string_copy(MYCLASS_G(docRoot));
+	// }
+	// if (!IS_SLASH(ZSTR_VAL(appRoot)[ZSTR_LEN(appRoot) - 1])) {
+	// 	tstr = appRoot;
+	// 	appRoot = strpprintf(0, "%s%c", ZSTR_VAL(appRoot), DEFAULT_SLASH);
+	// 	zend_string_release(tstr);
+	// }
+
+	// // define AZALEA magic const
+	// REGISTER_NS_STRINGL_CONSTANT(MYCLASS_NS, "APPROOT", ZSTR_VAL(appRoot), ZSTR_LEN(appRoot), CONST_CS);
+	// MYCLASS_G(appRoot) = appRoot;
+
+	// // set session if in session.environ list
+	// field = azaleaConfigSubFindEx(ZEND_STRL("session"), ZEND_STRL("env"));
+	// ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(field), pData) {
+	// 	if (Z_TYPE_P(pData) == IS_STRING && 0 == strcasecmp(Z_STRVAL_P(pData), ZSTR_VAL(MYCLASS_G(environ)))) {
+	// 		MYCLASS_G(startSession) = 1;
+	// 		break;
+	// 	}
+	// } ZEND_HASH_FOREACH_END();
+
+	// // ---------- END ----------
+
+	// // init bootstrap instance
+	// instance = &MYCLASS_G(bootstrap);
+	// object_init_ex(instance, azaleaBootstrapCe);
+	// RETURN_ZVAL(instance, 1, 0);
 }
 PHP_METHOD(children, run){
       //设置站点目录
@@ -454,9 +453,13 @@ PHP_METHOD(children, run){
       MYCLASS_G(actionName) = zend_string_tolower(Z_STR_P(field));
       php_printf("%s\n",ZSTR_VAL(MYCLASS_G(controllerName)));
       php_printf("%s\n",ZSTR_VAL(MYCLASS_G(actionName)));
+      php_printf("%s\n",ZSTR_VAL(MYCLASS_G(docRoot)));
+      php_printf("%s\n",ZSTR_VAL(MYCLASS_G(appRoot)));
+      
+return;     
 
       char *path = Z_STRVAL_P(app_dir);
-
+php_printf("%s\n",path);
       char *c_2 = "controllers/";
       strcat(path,c_2);
 
@@ -468,7 +471,6 @@ PHP_METHOD(children, run){
 
 
       php_printf("%s\n",path);
-
       //加载执行controller文件
       int flag;
       flag = zend_execute_scripts_ext(path);

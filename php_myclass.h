@@ -38,6 +38,10 @@ extern zend_module_entry myclass_module_entry;
 #include "TSRM.h"
 #endif
 #define MYCLASS_NS "Myclass"
+#define azalea_bootstrap_t zval
+#define PHP_AZALEA_VERSION "2.1.0"
+#define PHP_AZALEA_COPYRIGHT_OUTPUT "X-Framework: Azalea/"PHP_AZALEA_VERSION
+
 /*
   	Declare any global variables you may need between the BEGIN
 	and END macros here:
@@ -47,7 +51,7 @@ ZEND_BEGIN_MODULE_GLOBALS(myclass)
 	zend_ulong renderDepth;			// 渲染嵌套层数
 	zend_string *environ;			// 运行环境
 	zend_string *locale;			// 语言区域
-	//azalea_bootstrap_t bootstrap;	// Azalea\Bootstrap 实例变量
+	azalea_bootstrap_t bootstrap;	// Azalea\Bootstrap 实例变量
 	zend_bool registeredTemplateFunctions;	// 是否已注册模板函数
 	zend_bool startSession;			// 是否开启回话
 	zval instances;					// 实例缓存变量
@@ -55,7 +59,6 @@ ZEND_BEGIN_MODULE_GLOBALS(myclass)
 	zval config;					// 配置项变量
 	zval translations;				// 翻译字符变量
 	zval viewTagFunctionsUser;		// 视图标签变量 (用户定义)
-	zval bootstrap;
 	zend_string *docRoot;			// 入口文件根目录
 	zend_string *appRoot;			// 系统文件根目录
 	zend_string *uri;

@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "*.php": "php",
-        "php_session.h": "c"
+        "php_session.h": "c",
+        "type_traits": "c"
     }
 }
