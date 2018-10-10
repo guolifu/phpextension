@@ -2,6 +2,8 @@
     "files.associations": {
         "*.php": "php",
         "php_session.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "typeinfo": "c",
+        "zend_interfaces.h": "c"
     }
 }

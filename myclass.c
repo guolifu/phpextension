@@ -61,9 +61,6 @@ int zend_execute_scripts_ext(char *filepath){
     //zend_execute_scripts(int type, zval *retval, int file_count, ...);
     //FAILURE OR SUCCESS
     return  zend_execute_scripts(ZEND_INCLUDE TSRMLS_CC,&retval,1,&zfd); 
-    
-
-
 }
 zval * GlobalsStrFind(uint type, char *name, size_t len)
 {
@@ -367,13 +364,16 @@ PHP_METHOD(children, init)
      
 
 
-
+		
       // appRoot = zend_string_copy(MYCLASS_G(docRoot));
       // char *temp = ZSTR_VAL(appRoot);
       // strcat(temp,"app");
       // 确保 / 结尾
       zend_string *ztemp ;
-      ztemp = zend_string_copy(MYCLASS_G(docRoot));
+	  len = strlen(cwd);
+      ztemp = zend_string_init(cwd, len+1, 0);
+	  ZSTR_VAL(ztemp)[len] = DEFAULT_SLASH;
+      ZSTR_VAL(ztemp)[len + 1] = '\0';
       char *temp = ZSTR_VAL(ztemp);
       strcat(temp,"app");
       len = strlen(temp);
@@ -429,57 +429,52 @@ PHP_METHOD(children, init)
 	// RETURN_ZVAL(instance, 1, 0);
 }
 PHP_METHOD(children, run){
-      //设置站点目录
-      zval *app_dir = zend_read_static_property(Z_OBJCE_P(getThis()), "app_dir", sizeof("app_dir")-1, 0 TSRMLS_DC);
+	
+	zend_string *uri;
+	zval *conf, *field, *paths;
+	uri = MYCLASS_G(uri);
+	zend_string *stringSlash;
+	char *temp = ZSTR_VAL(uri);
+//   php_printf("%s\n",temp);
 
-      
-      zend_string *uri;
-      zval *conf, *field, *paths;
-      uri = MYCLASS_G(uri);
-      zend_string *stringSlash;
-      char *temp = ZSTR_VAL(uri);
-      php_printf("%s\n",temp);
-
-      zend_ulong pathsOffset = 0;
-      paths = &MYCLASS_G(paths);
+	zend_ulong pathsOffset = 0;
+	paths = &MYCLASS_G(paths);
 	if (ZSTR_LEN(uri)) {
 		php_explode( zend_new_interned_string(zend_string_init(ZEND_STRL("/"), 1)), uri, paths, ZEND_LONG_MAX);
 	}
-      field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset);
-      MYCLASS_G(controllerName) = zend_string_tolower(Z_STR_P(field));
+	field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset);
+	MYCLASS_G(controllerName) = zend_string_tolower(Z_STR_P(field));
 
 
-      field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset+1);
-      MYCLASS_G(actionName) = zend_string_tolower(Z_STR_P(field));
-      php_printf("%s\n",ZSTR_VAL(MYCLASS_G(controllerName)));
-      php_printf("%s\n",ZSTR_VAL(MYCLASS_G(actionName)));
-      php_printf("%s\n",ZSTR_VAL(MYCLASS_G(docRoot)));
-      php_printf("%s\n",ZSTR_VAL(MYCLASS_G(appRoot)));
-      
-return;     
+	field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset+1);
+	MYCLASS_G(actionName) = zend_string_tolower(Z_STR_P(field));
 
-      char *path = Z_STRVAL_P(app_dir);
-php_printf("%s\n",path);
-      char *c_2 = "controllers/";
-      strcat(path,c_2);
+	zend_string *controllerPath;
+	controllerPath = strpprintf(0, "%s%s%c%s.php", ZSTR_VAL(MYCLASS_G(appRoot)), "controllers", DEFAULT_SLASH, ZSTR_VAL(MYCLASS_G(controllerName)));
+	
+	char *c_path = ZSTR_VAL(controllerPath);
+	// strcat(controllerFilePath,controllerFilePath1);
 
-      char *c_3 = ZSTR_VAL(MYCLASS_G(controllerName));
-      strcat(path,c_3);
+	// php_printf("%s\n",c_path);
+	// return;
+	// zval exists;
+	// php_stat(controllerFilePath, (php_stat_len) strlen(controllerFilePath), FS_IS_R, &exists);
+	// php_var_dump(&exists,1);
+	// if ((Z_TYPE(exists) == IS_FALSE)){
+	// 	// php_printf("%s\n","Couldn't find file");
+	// 	zend_error_noreturn(E_CORE_ERROR,"Couldn't find file: .");
+	// }
+	// return;
+	//加载执行controller文件
+	int flag;
+	flag = zend_execute_scripts_ext(c_path);
 
-      char *c_4 = ".php";
-      strcat(path,c_4);
 
+	if(flag == FAILURE){
 
-      php_printf("%s\n",path);
-      //加载执行controller文件
-      int flag;
-      flag = zend_execute_scripts_ext(path);
+		zend_error_noreturn(E_CORE_ERROR,"Couldn't find file: %s.",c_path);
 
-      if(flag == FAILURE){
-
-            zend_error_noreturn(E_CORE_ERROR,"Couldn't find file: %s.",path);
-
-      }
+	}
 
       
 
@@ -489,7 +484,7 @@ php_printf("%s\n",path);
 
       if(controller_ce == NULL){
 
-            zend_error_noreturn(E_CORE_ERROR,"Couldn't find file: %s.",path);
+            zend_error_noreturn(E_CORE_ERROR,"Couldn't find file: %s.",c_path);
       }
 
 
