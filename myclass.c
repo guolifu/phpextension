@@ -436,19 +436,39 @@ PHP_METHOD(children, run){
 	zend_string *stringSlash;
 	char *temp = ZSTR_VAL(uri);
 //   php_printf("%s\n",temp);
-
 	zend_ulong pathsOffset = 0;
 	paths = &MYCLASS_G(paths);
+
+	
 	if (ZSTR_LEN(uri)) {
 		php_explode( zend_new_interned_string(zend_string_init(ZEND_STRL("/"), 1)), uri, paths, ZEND_LONG_MAX);
+	}else{
+		MYCLASS_G(controllerName) = zend_string_init("index", strlen("index"), 0);
+		MYCLASS_G(actionName) = zend_string_init("index", strlen("index"), 0);
 	}
-	field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset);
-	MYCLASS_G(controllerName) = zend_string_tolower(Z_STR_P(field));
+	//获取数组个数
+	HashTable *myht;
+	myht = Z_ARRVAL_P(paths);
+	uint32_t arr_result;
+	arr_result = zend_array_count(myht);
+	// arr_result = strpprintf(0, "array size is %d", zend_array_count(myht));
+  	php_printf("%d\n",arr_result);
+	if (arr_result==0){
+		
+	
+	}else if (arr_result==1)
+	{
+		field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset);
+		MYCLASS_G(controllerName) = zend_string_tolower(Z_STR_P(field));
+		MYCLASS_G(actionName) = zend_string_init("index", strlen("index"), 0);
+	}else{	
+		field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset);
+		MYCLASS_G(controllerName) = zend_string_tolower(Z_STR_P(field));
 
 
-	field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset+1);
-	MYCLASS_G(actionName) = zend_string_tolower(Z_STR_P(field));
-
+		field = zend_hash_index_find(Z_ARRVAL_P(paths), pathsOffset+1);
+		MYCLASS_G(actionName) = zend_string_tolower(Z_STR_P(field));
+	}
 	zend_string *controllerPath;
 	controllerPath = strpprintf(0, "%s%s%c%s.php", ZSTR_VAL(MYCLASS_G(appRoot)), "controllers", DEFAULT_SLASH, ZSTR_VAL(MYCLASS_G(controllerName)));
 	
